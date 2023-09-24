@@ -1,8 +1,8 @@
 FROM python:3.9
 
-RUN pip install -r ./requirements.txt
+ADD . /app
 
-COPY ./app.py /app/app.py
+RUN pip install -r /app/requirements.txt
 
 EXPOSE 8080
 
