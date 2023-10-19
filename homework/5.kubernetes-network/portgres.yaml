@@ -1,5 +1,28 @@
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgres
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: postgres
+data:
+  POSTGRES_USER: testuser
+  POSTGRES_DB: testdatabase
+  PGDATA: /var/lib/postgresql/data/pgdata
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-pass
+  namespace: postgres
+data:
+  POSTGRES_PASSWORD: dGVzdHBhc3N3b3JkCg==
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: postgres
@@ -21,7 +44,7 @@ subjects:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: postgres
+  name: postgres-pvc
   namespace: postgres
 spec:
   accessModes:
@@ -29,7 +52,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: csi-ceph-az1-retain
+  storageClassName: "csi-ceph-hdd-gz1"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,6 +73,10 @@ spec:
     spec:
       hostNetwork: true
       serviceAccountName: postgres
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
       containers:
       - image: postgres:15.4
         name: postgres
@@ -64,7 +91,10 @@ spec:
         volumeMounts:
           - name: data
             mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: postgres
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 1m
+            memory: 4Mi
